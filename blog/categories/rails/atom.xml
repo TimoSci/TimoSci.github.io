@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[Category: Rails | TimoSci]]></title>
+  <link href="http://timosci.github.io/blog/categories/rails/atom.xml" rel="self"/>
+  <link href="http://timosci.github.io/"/>
+  <updated>2016-01-14T16:53:06-05:00</updated>
+  <id>http://timosci.github.io/</id>
+  <author>
+    <name><![CDATA[Timo J]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Self Associations in ActiveRecord]]></title>
+    <link href="http://timosci.github.io/blog/2016/01/13/self-joins/"/>
+    <updated>2016-01-13T19:20:36-05:00</updated>
+    <id>http://timosci.github.io/blog/2016/01/13/self-joins</id>
+    <content type="html"><![CDATA[<h2>3 Types of self-joins</h2>
+
+<p>One of the core features of <a href="http://guides.rubyonrails.org/association_basics.html">ActiveRecord</a> is the ability to create associations between objects belonging to different classes, and
+between their corresponding tables.</p>
+
+<p>A lesser know feature is the ability to create associations between objects belonging to the <em>same</em> class, or to include foreign keys that point to the <em>same</em> table where they are stored.</p>
+
+<p>Self-joins are pretty straight forward. They work just like normal joins in principle,
+but we need to pay attention to <strong>class names</strong> and <strong>foreign keys</strong>, as outlined
+in the <a href="http://guides.rubyonrails.org/association_basics.html#self-joins">ActiveRecord Guides</a>.</p>
+
+<p>Say that we have Dog->Owner association:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:owner</span>
+<span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;class Owner &amp;lt; ActiveRecord::Base</span>
+<span class="sr">  has_many :dogs</span>
+<span class="sr">end</span></code></pre></div></p>
+
+<p>What if we wanted to turn that into a Dog->Dog association, for hypothetical world where
+dogs are owned by dogs?</p>
+
+<p><img class="center" src="images/bojack.png" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+
+<p>We could try something like this:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:dog</span>
+  <span class="n">has_many</span> <span class="ss">:dogs</span>
+<span class="k">end</span></code></pre></div></p>
+
+<p>By default, the <code>belongs_to :dog</code> helper method will look for a foreign key column called &ldquo;dog_id&rdquo; in the model where it was defined, and then search for a member of the Dog class with that id.</p>
+
+<p>If we want to be more expressive with our association names we have to
+<strong>override</strong> the defaults:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:owner</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Dog</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">owner_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+  <span class="n">has_many</span> <span class="ss">:dogs</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">owner_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+<span class="k">end</span></code></pre></div></p>
+
+<p>In terms of getting the self associations working, that&rsquo;s all there is to it!</p>
+
+<p>Now we can call</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">mister_peanut_butter</span> <span class="o">=</span> <span class="no">Dog</span><span class="o">.</span><span class="n">new</span>
+<span class="n">snoopy</span> <span class="o">=</span> <span class="no">Dog</span><span class="o">.</span><span class="n">new</span>
+<span class="n">snoopy</span><span class="o">.</span><span class="n">owner</span> <span class="o">=</span> <span class="n">mister_peanut_butter</span></code></pre></div></p>
+
+<p>But so far this seems like an academic exercise.</p>
+
+<h2>What is the point?</h2>
+
+<p>Self-associations are a useful <strong>design pattern</strong> because they allow
+us to <strong>recursively</strong> construct <a href="https://en.wikipedia.org/wiki/Graph_(abstract_data_type">Graph</a>-like data structures.</p>
+
+<p>I will explore in more detail as to how and why we would implement the 3 types of Self-associations:</p>
+
+<ol>
+<li>one-to-one-self</li>
+<li>one-to-many-self</li>
+<li>many-to-many-self</li>
+</ol>
+
+
+<p>It will also become clear that to benefit fully from the power of self-associations we will
+need to define additional <strong>Graph-traversal</strong> methods that are not provided by that standard
+ActiveRecord library, either by writing our own or by using gems.</p>
+
+<h2>One-To-One-Self</h2>
+
+<p>What does it mean if an object <strong>has and belongs to one</strong> of its own kind? One
+real-world example is any kind of collection that can be arranged in a <strong>pecking order</strong>, such as a succession of presidents. Each president has one and only one successor or predecessor.</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">President</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_one</span> <span class="ss">:successor</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">successor_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+  <span class="n">belongs_to</span> <span class="ss">:predecessor</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">President</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">successor_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+<span class="k">end</span></code></pre></div></p>
+
+<p>Why can&rsquo;t we just use a plain integer like <code>order_id</code>? We could, but then we would have
+to reassign the order_id for the entire collection of successors, every time we make an
+insertion of deletion.</p>
+
+<p>Using a self-association, we only have to change <em>two</em> rows in the table every time
+we make an insertion. <strong>Cheap insertion</strong> and removal is the principal benefit of the more
+generalized data structure called a <a href="https://en.wikipedia.org/wiki/Linked_list">Linked List</a>.  <strong>Cheap lookup</strong> could be provided by
+an additional index table, giving us the best of both worlds of linked lists and
+<a href="https://en.wikipedia.org/wiki/Tuple">Tuples</a>.</p>
+
+<p>We are not quite there yet. ActiveRecord makes no assumptions about the meaning
+of self-joins, so we need to build our own Graph constructors.</p>
+
+<p>In order to leverage ruby&rsquo;s <code>sort</code> iterator, we need can define the spaceship
+operator <code>&lt;=&gt;</code> for our model, and extract it into a module:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">LinkedList</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;  def distance(target)</span>
+<span class="sr">    # &amp;hellip;distance measuring code&amp;hellip;</span>
+<span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">&amp;</span><span class="n">lt</span><span class="p">;</span><span class="o">=&gt;</span> <span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span>
+      <span class="mi">0</span>
+    <span class="k">elsif</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span>
+      <span class="mi">1</span>
+    <span class="k">end</span>
+  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;end</span></code></pre></div></p>
+
+<p>Now our objects are sortable! We can display
+a list of blog posts, for instance, according to some user-defined order.</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Post</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">LinkedList</span>
+<span class="k">end</span></code></pre></div></p>
+
+<pre><code>@posts = Posts.all.sort
+</code></pre>
+
+<h2>One-To-Many-Self</h2>
+
+<p>A one-to-many self association can be used to represent a <strong>tree-like</strong> data structure.</p>
+
+<p><img class="center" src="images/tree.svg" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+
+<p>In our model it looks like this:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Soldier</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:commander</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">commander_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="ss">class</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Soldier</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+  <span class="n">has_many</span> <span class="ss">:subordinates</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">commander_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="ss">class</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Soldier</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+<span class="k">end</span></code></pre></div></p>
+
+<p>We can grab an arbitrary sub-branch of the family tree by defining a <strong>recursive</strong>
+descendants method, and again extracting it to a module.</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Parentable</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;  def has_children?</span>
+<span class="sr">   self.children.to_a != []</span>
+<span class="sr">  end&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="k">def</span> <span class="nf">self_and_descendants</span>
+   <span class="k">if</span> <span class="n">has_children?</span>
+      <span class="n">descendants</span> <span class="o">=</span>  <span class="n">children</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="o">[]</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="p">,</span><span class="n">child</span><span class="o">|</span>
+          <span class="n">result</span> <span class="o">+</span> <span class="n">child</span><span class="o">.</span><span class="n">self_and_descendants</span>
+      <span class="k">end</span>
+      <span class="k">return</span> <span class="o">[</span><span class="nb">self</span><span class="o">]</span> <span class="o">+</span> <span class="n">descendants</span>
+   <span class="k">else</span>
+      <span class="k">return</span> <span class="o">[</span><span class="nb">self</span><span class="o">]</span>
+   <span class="k">end</span>
+  <span class="k">end</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;end</span></code></pre></div></p>
+
+<p>This method would in useful, for example, in a reddit-like application where
+we want to display all the posts of a topic <em>and its entire tree of subtopics</em>.</p>
+
+<h2>Many-To-Many-Self</h2>
+
+<p><strong>Social Networks</strong> are the most common application of these:</p>
+
+<p><img class="center" src="images/social.svg" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+
+<p>The associations are done much like above, except this time we need a <strong>join table</strong>
+representing <strong>friendships</strong>, that includes 2 columns like <code>follower_id</code>, <code>followee_id</code>.</p>
+
+<p>Things start to become complex when we try to analyze the structure our
+social network, for example finding the the smallest &ldquo;degree of separation&rdquo; path
+between two people.</p>
+
+<p>Depending on the size and complexity of our social network, it might now
+be a good idea to hand over the heavy lifting to a graph function library such as the  <a href="RGL%20gem">https://github.com/monora/rgl</a>.</p>
+
+<p>Graph theory is a huge topic that deserves it&rsquo;s own blog post, so I will only illustrate a single graph metric here called <a href="betweeness%20centrality">https://en.wikipedia.org/wiki/Betweenness_centrality</a>.</p>
+
+<p>In simplified terms, betweeness centrality measures how &ldquo;well connected&rdquo; a node
+in the network is, not only in terms of number of connections, but also quality
+of connections.</p>
+
+<p>In this picture nodes are shaded according
+to their betweeness centrality:</p>
+
+<p>&hellip;</p>
+
+<p>It is is a useful metric, for example, if we want to rank a user&rsquo;s contacts in terms
+of &ldquo;importance&rdquo; on an Linked-In style employment site.</p>
+]]></content>
+  </entry>
+  
+</feed>

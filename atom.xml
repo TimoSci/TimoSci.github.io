@@ -4,7 +4,7 @@
   <title><![CDATA[TimoSci]]></title>
   <link href="http://timosci.github.io/atom.xml" rel="self"/>
   <link href="http://timosci.github.io/"/>
-  <updated>2015-12-02T17:57:51-05:00</updated>
+  <updated>2016-01-14T16:53:06-05:00</updated>
   <id>http://timosci.github.io/</id>
   <author>
     <name><![CDATA[Timo J]]></name>
@@ -14,23 +14,724 @@
 
   
   <entry>
-    <title type="html"><![CDATA[The Dangers of Rm]]></title>
-    <link href="http://timosci.github.io/blog/2015/12/02/the-dangers-of-rm/"/>
-    <updated>2015-12-02T00:00:00-05:00</updated>
-    <id>http://timosci.github.io/blog/2015/12/02/the-dangers-of-rm</id>
-    <content type="html"><![CDATA[<p>I have once caused several thousand dollars worth of damage by typing <code>rm -rf</code> absent-mindedly. Luckily, the damage was on me but the lesson was learned. I have met <a href="https://en.wikipedia.org/wiki/ISTJ">ISTJ</a>-type programmers who pride themselves in always wielding the raw power of <strong>rm</strong> and who think that the Trashcan is for wusses. I respect that attitude, but to me, <strong>rm</strong> should only be applied sparingly. I find it an ill-designed human interface for quotidian usage. That&rsquo;s why I&rsquo;ve replaced it with the friendlier <code>del</code> or <code>trash</code> aliases on my system.</p>
+    <title type="html"><![CDATA[Self Associations in ActiveRecord]]></title>
+    <link href="http://timosci.github.io/blog/2016/01/13/self-joins/"/>
+    <updated>2016-01-13T19:20:36-05:00</updated>
+    <id>http://timosci.github.io/blog/2016/01/13/self-joins</id>
+    <content type="html"><![CDATA[<h2>3 Types of self-joins</h2>
 
-<h3>Ubuntu</h3>
+<p>One of the core features of <a href="http://guides.rubyonrails.org/association_basics.html">ActiveRecord</a> is the ability to create associations between objects belonging to different classes, and
+between their corresponding tables.</p>
 
-<p>Add the following aliases to your <strong>.bash-profile</strong> file:</p>
+<p>A lesser know feature is the ability to create associations between objects belonging to the <em>same</em> class, or to include foreign keys that point to the <em>same</em> table where they are stored.</p>
 
-<p><code>del='gvfs-trash'</code></p>
+<p>Self-joins are pretty straight forward. They work just like normal joins in principle,
+but we need to pay attention to <strong>class names</strong> and <strong>foreign keys</strong>, as outlined
+in the <a href="http://guides.rubyonrails.org/association_basics.html#self-joins">ActiveRecord Guides</a>.</p>
 
-<h3>Mac OS</h3>
+<p>Say that we have Dog->Owner association:</p>
 
-<p>Install the trash command using brew:</p>
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:owner</span>
+<span class="k">end</span>
 
-<p><code>brew install trash</code></p>
+<span class="k">class</span> <span class="nc">Owner</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_many</span> <span class="ss">:dogs</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>What if we wanted to turn that into a Dog->Dog association, for hypothetical world where
+dogs are owned by dogs?</p>
+
+<p><img class="center" src="images/bojack.png" title="image" alt="images"></p>
+
+<p>We could try something like this:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:dog</span>
+  <span class="n">has_many</span> <span class="ss">:dogs</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>By default, the <code>belongs_to :dog</code> helper method will look for a foreign key column called &ldquo;dog_id&rdquo; in the model where it was defined, and then search for a member of the Dog class with that id.</p>
+
+<p>If we want to be more expressive with our association names we have to
+<strong>override</strong> the defaults:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Dog</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:owner</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="s2">&quot;Dog&quot;</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;owner_id&quot;</span>
+  <span class="n">has_many</span> <span class="ss">:dogs</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;owner_id&quot;</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>In terms of getting the self associations working, that&rsquo;s all there is to it!</p>
+
+<p>Now we can call</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="n">mister_peanut_butter</span> <span class="o">=</span> <span class="no">Dog</span><span class="o">.</span><span class="n">new</span>
+<span class="n">snoopy</span> <span class="o">=</span> <span class="no">Dog</span><span class="o">.</span><span class="n">new</span>
+<span class="n">snoopy</span><span class="o">.</span><span class="n">owner</span> <span class="o">=</span> <span class="n">mister_peanut_butter</span></code></pre></div>
+
+
+<p>But so far this seems like an academic exercise.</p>
+
+<h2>What is the point?</h2>
+
+<p>Self-associations are a useful <strong>design pattern</strong> because they allow
+us to <strong>recursively</strong> construct <a href="https://en.wikipedia.org/wiki/Graph_(abstract_data_type">Graph</a>-like data structures.</p>
+
+<p>I will explore in more detail as to how and why we would implement the 3 types of Self-associations:</p>
+
+<ol>
+<li>one-to-one-self</li>
+<li>one-to-many-self</li>
+<li>many-to-many-self</li>
+</ol>
+
+
+<p>It will also become clear that to benefit fully from the power of self-associations we will
+need to define additional <strong>Graph-traversal</strong> methods that are not provided by that standard
+ActiveRecord library, either by writing our own or by using gems.</p>
+
+<h2>One-To-One-Self</h2>
+
+<p>What does it mean if an object <strong>has and belongs to one</strong> of its own kind? One
+real-world example is any kind of collection that can be arranged in a <strong>pecking order</strong>, such as a succession of presidents. Each president has one and only one successor or predecessor.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">President</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">has_one</span> <span class="ss">:successor</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;successor_id&quot;</span>
+  <span class="n">belongs_to</span> <span class="ss">:predecessor</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="s2">&quot;President&quot;</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;successor_id&quot;</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>Why can&rsquo;t we just use a plain integer like <code>order_id</code>? We could, but then we would have
+to reassign the order_id for the entire collection of successors, every time we make an
+insertion of deletion.</p>
+
+<p>Using a self-association, we only have to change <em>two</em> rows in the table every time
+we make an insertion. <strong>Cheap insertion</strong> and removal is the principal benefit of the more
+generalized data structure called a <a href="https://en.wikipedia.org/wiki/Linked_list">Linked List</a>.  <strong>Cheap lookup</strong> could be provided by
+an additional index table, giving us the best of both worlds of linked lists and
+<a href="https://en.wikipedia.org/wiki/Tuple">Tuples</a>.</p>
+
+<p>We are not quite there yet. ActiveRecord makes no assumptions about the meaning
+of self-joins, so we need to build our own Graph constructors.</p>
+
+<p>In order to leverage ruby&rsquo;s <code>sort</code> iterator, we need can define the spaceship
+operator <code>&lt;=&gt;</code> for our model, and extract it into a module:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">LinkedList</span>
+
+  <span class="k">def</span> <span class="nf">distance</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="c1"># ...distance measuring code...</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">&lt;=&gt;</span> <span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="nb">self</span><span class="o">.</span><span class="n">distance</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">d</span>
+      <span class="mi">0</span>
+    <span class="k">elsif</span> <span class="n">d</span> <span class="o">&gt;</span> <span class="mi">0</span>
+      <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span>
+      <span class="mi">1</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>Now our objects are sortable! We can display
+a list of blog posts, for instance, according to some user-defined order.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Post</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="kp">include</span> <span class="no">LinkedList</span>
+<span class="k">end</span></code></pre></div>
+
+
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>@posts = Posts.all.sort</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>One-To-Many-Self</h2>
+
+<p>A one-to-many self association can be used to represent a <strong>tree-like</strong> data structure.</p>
+
+<p><img class="center" src="images/tree.svg" width="350" height="350" title="image" alt="images"></p>
+
+<p>In our model it looks like this:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Soldier</span> <span class="o">&lt;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span>
+  <span class="n">belongs_to</span> <span class="ss">:commander</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;commander_id&quot;</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="s2">&quot;Soldier&quot;</span>
+  <span class="n">has_many</span> <span class="ss">:subordinates</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="s2">&quot;commander_id&quot;</span><span class="p">,</span> <span class="ss">class</span><span class="p">:</span> <span class="s2">&quot;Soldier&quot;</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>We can grab an arbitrary sub-branch of the family tree by defining a <strong>recursive</strong>
+descendants method, and again extracting it to a module.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Parentable</span>
+
+  <span class="k">def</span> <span class="nf">has_children?</span>
+   <span class="nb">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">to_a</span> <span class="o">!=</span> <span class="o">[]</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">self_and_descendants</span>
+   <span class="k">if</span> <span class="n">has_children?</span>
+      <span class="n">descendants</span> <span class="o">=</span>  <span class="n">children</span><span class="o">.</span><span class="n">inject</span><span class="p">(</span><span class="o">[]</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">result</span><span class="p">,</span><span class="n">child</span><span class="o">|</span>
+          <span class="n">result</span> <span class="o">+</span> <span class="n">child</span><span class="o">.</span><span class="n">self_and_descendants</span>
+      <span class="k">end</span>
+      <span class="k">return</span> <span class="o">[</span><span class="nb">self</span><span class="o">]</span> <span class="o">+</span> <span class="n">descendants</span>
+   <span class="k">else</span>
+      <span class="k">return</span> <span class="o">[</span><span class="nb">self</span><span class="o">]</span>
+   <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>This method would in useful, for example, in a reddit-like application where
+we want to display all the posts of a topic <em>and its entire tree of subtopics</em>.</p>
+
+<h2>Many-To-Many-Self</h2>
+
+<p><strong>Social Networks</strong> are the most common application of these:</p>
+
+<p><img class="center" src="images/social.svg" width="350" height="350" title="image" alt="images"></p>
+
+<p>The associations are done much like above, except this time we need a <strong>join table</strong>
+representing <strong>friendships</strong>, that includes 2 columns like <code>follower_id</code>, <code>followee_id</code>.</p>
+
+<p>Things start to become complex when we try to analyze the structure our
+social network, for example finding the the smallest &ldquo;degree of separation&rdquo; path
+between two people.</p>
+
+<p>Depending on the size and complexity of our social network, it might now
+be a good idea to hand over the heavy lifting to a graph function library such as the  <a href="RGL%20gem">https://github.com/monora/rgl</a>.</p>
+
+<p>Graph theory is a huge topic that deserves it&rsquo;s own blog post, so I will only illustrate a single graph metric here called <a href="betweeness%20centrality">https://en.wikipedia.org/wiki/Betweenness_centrality</a>.</p>
+
+<p>In simplified terms, betweeness centrality measures how &ldquo;well connected&rdquo; a node
+in the network is, not only in terms of number of connections, but also quality
+of connections.</p>
+
+<p>In this picture nodes are shaded according
+to their betweeness centrality:</p>
+
+<p>&hellip;</p>
+
+<p>It is is a useful metric, for example, if we want to rank a user&rsquo;s contacts in terms
+of &ldquo;importance&rdquo; on an Linked-In style employment site.</p>
+]]></content>
+  </entry>
+  
+  <entry>
+    <title type="html"><![CDATA[Navigating Nested Data Structures]]></title>
+    <link href="http://timosci.github.io/blog/2015/12/09/navigating_nested_data_structures/"/>
+    <updated>2015-12-09T00:00:00-05:00</updated>
+    <id>http://timosci.github.io/blog/2015/12/09/navigating_nested_data_structures</id>
+    <content type="html"><![CDATA[<h2>Monster Data Structures from the Web</h2>
+
+<p>When interacting with <a href="https://en.wikipedia.org/wiki/JSON">JSON</a> <a href="https://en.wikipedia.org/wiki/Application_programming_interface">APIs</a> we will often encounter mixed, <strong>tree-like</strong>
+data structures consisting of nested Arrays of Hashes <sup>of Arrays of Hashes <sup>of Arrays of Hashes<sup> of Arrays of Hashes</sup></sup></sup></sup>.</p>
+
+<p>Unfortunately different web applications use different <strong>conventions</strong> or
+ <a href="http://spacetelescope.github.io/understanding-json-schema/about.html">schemas</a>for building their
+JSON data structures. Grabbing the desired sub - data structures can become a labor
+intensive process because we have to figure out the &lsquo;correct&rsquo; way of <strong>indexing</strong> for each
+website.</p>
+
+<p>Since I am <strong>lazy</strong>, I have asked myself if there a more generalized way
+to navigate these data structures. From now on I will refer to these mixed structures as
+<strong>EnumTree</strong>, since both Hashes and Arrays are Enumerables.</p>
+
+<p>EnumTrees exhibit an interesting property called <a href="https://en.wikipedia.org/wiki/Scale_invariance">scale invariance</a>, also known as <strong>self-similarity</strong> or <strong>evolving symmetry</strong> or <strong>expanding symmetry</strong></p>
+
+<p><img src="./public/Kochsim.gif" alt="Koch Curve" /></p>
+
+<p>This is just a fancy way of saying that when iterating through an <strong>EnumTree</strong>, (some) of
+the elements are also <strong>EnumTrees</strong>.</p>
+
+<p><strong>How can we use of this property to our advantage?</strong></p>
+
+<h2>Nested Arrays</h2>
+
+<p>Let&rsquo;s <strong>divide and conquer</strong>. Let&rsquo;s first look at
+at simpler data structure that also exhibits scale invariance, the <strong>nested Array</strong>.</p>
+
+<p>Consider the following array:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'> my_array = [1, 2, [31, 32], 4, [51, 52, [531, 532, [5331, 5332]], [54, 55]], 6]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>How do we navigate though arbitrary nested levels? You may be familiar with the
+<code>flatten</code> method, but what if we want to do the equivalent of <code>map</code>, but preserving
+the original tree structure?</p>
+
+<p>Let&rsquo;s <strong>monkey patch</strong> the Array class with a tentative <code>deep_map</code> method.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Array</span>
+
+  <span class="k">def</span> <span class="nf">deep_map</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>This method will only <strong>#map</strong> the first level elements</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_array.deep_map{|x| x*1000 }
+</span><span class='line'>=&gt;  [1000, 2000, [31, 32], 4000, [51, 52, [531, 532, [5331, 5332]], [54, 55]], 6000]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>This is a start!</p>
+
+<p>How can we improve this method? Perhaps by also mapping the <strong>second level</strong> elements.
+To do this we create another method <code>deep_map_second_level</code> and then instead of
+just returning the element, we call said method on the element.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Array</span>
+
+  <span class="k">def</span> <span class="nf">deep_map</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span><span class="o">.</span><span class="n">deep_map_second_level</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">deep_map_second_level</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>Which will return:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_array.deep_map{|x| x * 1000 }
+</span><span class='line'>=&gt; [1000, 2000, [31000, 32000], 4000, [51000, 52000, [531, 532, [5331, 5332]], [54, 55]], 6000]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We are making progress!</p>
+
+<p>Can be do better? Yes, by creating a <code>deep_map_third_level</code> method</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Array</span>
+
+  <span class="k">def</span> <span class="nf">deep_map</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span><span class="o">.</span><span class="n">deep_map_second_level</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">deep_map_second_level</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span><span class="o">.</span><span class="n">deep_map_third_level</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+  <span class="k">def</span> <span class="nf">deep_map_third_level</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>Returning a mapping up to the 3rd level:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_array.deep_map{|x| x * 1000 }
+</span><span class='line'>=&gt; [1000, 2000, [31000, 32000], 4000, [51000, 52000, [531, 532, [5331, 5332]], [54, 55]], 6000]</span></code></pre></td></tr></table></div></figure>
+
+
+<p><br/></p>
+
+<p>But how do we travel across an <strong>arbitrary</strong> number of levels?</p>
+
+<p>That&rsquo;s where our friend <strong>self-similarity</strong> comes in. The method <code>deep_map_second_level</code> is <strong>identical</strong> to the method <code>deep_map</code>.</p>
+
+<p>The method <code>deep_map_third_level</code> represents the last level and is
+<strong>almost idential</strong> except for the line where
+returns an plain element instead of the <strong>#map</strong>&lsquo;ed element.</p>
+
+<p>Great potential <strong>DRY</strong>&lsquo;ing up the code.</p>
+
+<p>Instead of calling <code>deep_map_second_level</code> inside <code>deep_map</code>, we can just call <code>deep_map</code> inside <code>deep_map</code>. We still need to account for the last level
+method though, which behaves slightly differently.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Array</span>
+
+   <span class="k">def</span> <span class="nf">deep_map</span>
+     <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+       <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+         <span class="c1"># if not last level  </span>
+         <span class="n">element</span><span class="o">.</span><span class="n">deep_map</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+         <span class="c1"># if last level</span>
+         <span class="n">element</span><span class="o">.</span><span class="n">deep_map_last_level</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+       <span class="k">else</span>
+         <span class="k">yield</span> <span class="n">element</span>
+       <span class="k">end</span>
+     <span class="k">end</span>
+   <span class="k">end</span>
+
+  <span class="k">end</span></code></pre></div>
+
+
+<p> Yes, we can actually call a method inside itself. This will send the method itself to the sub-array and loop back unto itself until it reaches a break point (A non-Enumerable in this case).</p>
+
+<p>The last level of our loop has no Arrays as elements, so we can <strong>simplify</strong>
+<code>deep_map_last_level</code> by removing the if statement</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">deep_map_last_level</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+  <span class="c1">#  if Array === element</span>
+  <span class="c1">#    element</span>
+  <span class="c1">#  else</span>
+      <span class="k">yield</span> <span class="n">element</span>
+  <span class="c1">#  end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>which becomes&hellip;</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">deep_map_last_level</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">yield</span> <span class="n">element</span>
+  <span class="k">end</span>    
+<span class="k">end</span></code></pre></div>
+
+
+<p>but wait&hellip; that method does exactly the same as <code>map</code> so we can just insert that
+into <code>deep_map</code> and do away with <strong>#deep_map_last_level</strong> altogether.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">deep_map</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+    <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+      <span class="c1"># if not last level  </span>
+      <span class="n">element</span><span class="o">.</span><span class="n">deep_map</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="c1"># if last level</span>
+      <span class="n">element</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+    <span class="k">else</span>
+      <span class="k">yield</span> <span class="n">element</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>The above method simplifies to:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">deep_map</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+    <span class="k">if</span> <span class="nb">Array</span> <span class="o">===</span> <span class="n">element</span>
+      <span class="n">element</span><span class="o">.</span><span class="n">deep_map</span><span class="p">{</span><span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="k">yield</span> <span class="n">e</span><span class="p">}</span>
+    <span class="k">else</span>
+      <span class="k">yield</span> <span class="n">element</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>Calling <strong>#deep_map</strong> on our array now gives us:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_array.deep_map{|x| x * 1000 }
+</span><span class='line'>=&gt; [1000, 2000, [31000, 32000], 4000, [51000, 52000, [531000, 532000, [5331000, 5332000]], [54000, 55000]], 6000]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Mission accomplished!</p>
+
+<p>By the way, in trying to solve this problem we have just discovered <a href="https://en.wikipedia.org/wiki/Recursion_(computer_science">recursion</a>)!</p>
+
+<h2>Applying recursion to EnumTrees</h2>
+
+<p>How do we extend the above principle to EnumTrees?</p>
+
+<p>Since we don&rsquo;t want to <strong>repeat ourselves</strong>, a good first step would be to define an <strong>iterator</strong> method that work on all EnumTrees, ie. one that can be called on both Hashes and Arrays. This is an example of <a href="https://en.wikipedia.org/wiki/Polymorphism_(computer_science">polymorphism</a>).</p>
+
+<p>Fortunately, Ruby already has polymorphic methods like <code>map</code>.</p>
+
+<p><code>map</code> will return different things for Hashes and Arrays, but whatever it returns
+is also an <strong>EnumTree</strong>:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_array = [1,1,2,3,5]
+</span><span class='line'>my_array.map{|x| x}
+</span><span class='line'>=&gt; [1,1,2,3,5]
+</span><span class='line'>
+</span><span class='line'>my_hash = [a:1,b:1,c:2,d:3,e:5]
+</span><span class='line'>my_hash.map{|x| x}
+</span><span class='line'>=&gt; [[:a, 1], [:b, 1], [:c, 2], [:d, 3], [:e, 5]]</span></code></pre></td></tr></table></div></figure>
+
+
+<p>So the above <strong>#deep_map</strong> will actually work on EnumTrees; we only need to replace the Class Array with the Module Enumerable:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Enumerable</span>
+
+  <span class="k">def</span> <span class="nf">deep_map</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">map</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="no">Enumerable</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span><span class="o">.</span><span class="n">deep_map</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+ <span class="k">end</span></code></pre></div>
+
+
+<p>However, it will map both keys and values, and it won&rsquo;t preserve the structure of the original EnumTree.</p>
+
+<p>Instead We can define our own <strong>custom iterator</strong> that does preserve the keys:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="no">Module</span> <span class="no">Enumerable</span>
+
+  <span class="k">def</span> <span class="nf">map_values</span>  
+    <span class="k">case</span> <span class="nb">self</span>
+    <span class="k">when</span> <span class="nb">Array</span>
+      <span class="nb">self</span><span class="o">.</span><span class="n">map</span><span class="p">{</span><span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="k">yield</span> <span class="n">e</span><span class="p">}</span>
+    <span class="k">when</span> <span class="no">Hash</span>
+      <span class="nb">self</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="nb">self</span><span class="p">){</span><span class="o">|</span><span class="n">v</span><span class="o">|</span> <span class="k">yield</span> <span class="n">v</span><span class="p">}</span>
+    <span class="k">end</span>
+  <span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>But <code>map_values</code> is a method. How do we pass a method to a method?</p>
+
+<p>We could just re-write the above code and replace
+<strong>#map</strong> with <strong>#map_values</strong>. But if we don&rsquo;t
+want to re-write our code for every custom iterator, there is a more generalized solution.</p>
+
+<h1>Using <strong>metaprogramming</strong> to send our custom method all the way up the branches of the tree.</h1>
+
+<p>First, let&rsquo;s refactor <code>deep_map</code> into the more generalized <code>deep_send</code></p>
+
+<p>The map_values method be represented by a string or symbol and
+passed to <strong>#deep_send</strong> as an argument, then called inside deep_send</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">deep_send</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>
+    <span class="nb">self</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span> <span class="k">do</span> <span class="o">|</span><span class="n">element</span><span class="o">|</span>
+      <span class="k">if</span> <span class="no">Enumerable</span> <span class="o">===</span> <span class="n">element</span>
+        <span class="n">element</span><span class="o">.</span><span class="n">deep_iterate</span><span class="p">(</span><span class="n">iterator</span><span class="p">){</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+      <span class="k">else</span>
+        <span class="k">yield</span> <span class="n">element</span>
+      <span class="k">end</span>
+    <span class="k">end</span>
+  <span class="k">end</span></code></pre></div>
+
+
+<p>Testing <strong>#deep_send</strong></p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_enum_tree = [1,2,[31,32],4,[{a:51,b:52,c:[531,532,[5331,5332]]},{a:54,b:55}],6]
+</span><span class='line'>
+</span><span class='line'>my_enum_tree.deep_send("map_values"){|x| x*1000}
+</span><span class='line'>
+</span><span class='line'> =&gt; [1000, 2000, [31000, 32000], 4000, [{:a=&gt;51000, :b=&gt;52000, :c=&gt;[531000, 532000, [5331000, 5332000]]}, {:a=&gt;54000, :b=&gt;55000}], 6000]
+</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Refactoring our code with lambdas</h2>
+
+<p>One disadvantage of using <strong>methods</strong> for recursion are a method&rsquo;s strict scope gates. At each level of recursion we must pass all the arguments again. Also, a method will
+only <code>yield</code> up to the next branch of the tree. This
+property of methods could be an advantage, because it
+gives us more control of what is yielded, but for our
+EnumTree problem will simply need to yield all the way
+to the <strong>root</strong> of the tree.</p>
+
+<p>We could use <strong>instance variables</strong>, but that&rsquo;s an ugly workarond. We want to avoid poking holes in the <a href="https://en.wikipedia.org/wiki/Encapsulation_%28computer_programming%29">encapsulation</a> of our #deep_send.</p>
+
+<p>For many recursion problems, <strong>lambdas</strong> are often the better tool:</p>
+
+<ul>
+<li><p>Lambdas have a <strong>leakier</strong> scope gate. They have
+access to local variables defined outside their block.</p></li>
+<li><p>Lambdas will <strong>yield</strong> all the way back to method that
+they were called inside.</p></li>
+</ul>
+
+
+<p>For our EnumTree problem, lambdas make for cleaner and more flexible code.</p>
+
+<p>Refactoring our method into a lambda, and the wrapping
+it in a container method, gives us the final version of <strong>#deep_send</strong>:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">module</span> <span class="nn">Enumerable</span>
+
+<span class="k">def</span> <span class="nf">deep_send</span><span class="p">(</span><span class="n">iterator</span><span class="p">)</span>
+  <span class="n">deep</span> <span class="o">=-&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">){</span>
+    <span class="k">case</span> <span class="n">x</span>
+    <span class="k">when</span> <span class="no">Enumerable</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">iterator</span><span class="p">){</span><span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="n">deep</span><span class="o">.</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span>
+    <span class="k">else</span>
+      <span class="k">yield</span> <span class="n">x</span>
+    <span class="k">end</span>
+  <span class="p">}</span>
+  <span class="n">deep</span><span class="o">.</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+<span class="k">end</span>
+
+<span class="k">end</span></code></pre></div>
+
+
+<p>Now that we have a generalized deep iterate for our
+EnumTree, we can tree sending it some iterators, both custom
+and Ruby native.</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_enum_tree
+</span><span class='line'>=&gt; [1, 2, [31, 32], 4, [{:a=&gt;51, :b=&gt;52, :c=&gt;[531, 532, [5331, 5332]]}, {:a=&gt;54, :b=&gt;55}], 6]
+</span><span class='line'>
+</span><span class='line'>my_eunm_tree.deep_send("map"){|x| x.to_s}
+</span><span class='line'>=&gt; ["1", "2", ["31", "32"], "4", [[["a", "51"], ["b", "52"], ["c", ["531", "532", ["5331", "5332"]]]], [["a", "54"], ["b", "55"]]], "6"]
+</span><span class='line'>
+</span><span class='line'>my_enum_tree.deep_send("each"){|x| print x; print " "}
+</span><span class='line'>1 2 31 32 4 a 51 b 52 c 531 532 5331 5332 a 54 b 55 6</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We can also build on <strong>#each</strong> to create a <strong>#trample</strong> method, a method that flattens everything.</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">each_deep</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">deep_send</span><span class="p">(</span><span class="s2">&quot;each_values&quot;</span><span class="p">){</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="k">yield</span> <span class="n">x</span><span class="p">}</span>
+<span class="k">end</span>
+
+<span class="k">def</span> <span class="nf">trample</span>
+  <span class="n">out</span> <span class="o">=</span> <span class="o">[]</span>
+  <span class="nb">self</span><span class="o">.</span><span class="n">each_deep</span><span class="p">{</span><span class="o">|</span><span class="n">x</span><span class="o">|</span> <span class="n">out</span> <span class="o">&lt;&lt;</span> <span class="n">x</span><span class="p">}</span>
+  <span class="n">out</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>Testing it on our EnumTree:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>my_enum_tree.trample
+</span><span class='line'>=&gt; [1, 2, 31, 32, 4, 51, 52, 531, 532, 5331, 5332, 54, 55, 6]</span></code></pre></td></tr></table></div></figure>
+
+
+<h2>Breaking off the branches of the EnumTree</h2>
+
+<p>Let&rsquo;s find some practical applications. What if we just discovered
+some new <strong>API</strong> but have no time to figure out the structure. What if we want to find a <strong>key</strong> by name somewhere in the tree and return the sub-tree for that tree.</p>
+
+<p>Unfortunately, we cannot use the generalized method above, but
+we can use it as a template and tweak it for this <strong>tailor-made</strong> purpose:</p>
+
+<div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">def</span> <span class="nf">select_branches_by_key</span>
+  <span class="n">branches</span> <span class="o">=</span> <span class="o">[]</span>
+  <span class="n">deep</span> <span class="o">=-&gt;</span><span class="p">(</span><span class="n">x</span><span class="p">){</span>
+    <span class="k">case</span> <span class="n">x</span>
+    <span class="k">when</span> <span class="nb">Array</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">e</span><span class="o">|</span> <span class="n">deep</span><span class="o">.</span><span class="p">(</span><span class="n">e</span><span class="p">)}</span>
+    <span class="k">when</span> <span class="no">Hash</span>
+      <span class="n">x</span><span class="o">.</span><span class="n">each</span><span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="n">deep</span><span class="o">.</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="p">}</span>
+      <span class="n">selected</span> <span class="o">=</span>  <span class="n">x</span><span class="o">.</span><span class="n">select</span><span class="p">{</span><span class="o">|</span><span class="n">k</span><span class="p">,</span><span class="n">v</span><span class="o">|</span> <span class="k">yield</span> <span class="n">k</span><span class="p">}</span>
+      <span class="n">branches</span> <span class="o">|=</span> <span class="n">selected</span><span class="o">.</span><span class="n">values</span> <span class="k">if</span> <span class="n">selected</span> <span class="o">!=</span> <span class="p">{}</span>
+    <span class="k">end</span>
+  <span class="p">}</span>
+  <span class="n">deep</span><span class="o">.</span><span class="p">(</span><span class="nb">self</span><span class="p">)</span>
+  <span class="n">branches</span>
+<span class="k">end</span></code></pre></div>
+
+
+<p>Let&rsquo;s try it out on the <a href="http://www.reddit.com">Reddit</a> API.
+Grabbing the front page gives us:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>raw_json = RestClient.get("reddit.com/.json")
+</span><span class='line'>front_page = JSON.parse(raw_json)</span></code></pre></td></tr></table></div></figure>
+
+
+<p>We don&rsquo;t know exactly where the post titles are located, but if
+we search for <code>/title/</code>&hellip;</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+<span class='line-number'>10</span>
+<span class='line-number'>11</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>front_page.select_branches_by_key{|k| k =~ /title/ }
+</span><span class='line'>
+</span><span class='line'>=&gt; ["Digging peanuts",
+</span><span class='line'> "Starfleet Grandma Christmas Sweater",
+</span><span class='line'> "TIL that when Cristiano Ronaldo was asked to donate his cleats for a charity auction benefitting 10-year old Erik Ortiz Cruz, who had a brain disorder that can cause 30 seizures a day, he instead paid the whole $83K for his surgery.",
+</span><span class='line'> "My friend's cat had surgery and now he has no pants",
+</span><span class='line'> "[image] It is not too late. You are not too old.",
+</span><span class='line'> "How To Get A Girl That Doesn't Like You Back",
+</span><span class='line'>...
+</span><span class='line'>...
+</span><span class='line'>...</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Full module is available on <a href="https://github.com/TimoSci/ruby-toolbox/blob/master/deepop.rb">github/TimoSci </a></p>
+
+<p><img src="./public/recursive-cat.gif" alt="Recursive Cat" /></p>
 ]]></content>
   </entry>
   
