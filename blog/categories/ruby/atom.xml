@@ -4,7 +4,7 @@
   <title><![CDATA[Category: Ruby | TimoSci]]></title>
   <link href="http://timosci.github.io/blog/categories/ruby/atom.xml" rel="self"/>
   <link href="http://timosci.github.io/"/>
-  <updated>2016-01-14T17:50:49-05:00</updated>
+  <updated>2016-01-18T19:21:00-05:00</updated>
   <id>http://timosci.github.io/</id>
   <author>
     <name><![CDATA[Timo J]]></name>
@@ -42,7 +42,7 @@ in the <a href="http://guides.rubyonrails.org/association_basics.html#self-joins
 <p>What if we wanted to turn that into a Dog->Dog association, for hypothetical world where
 dogs are owned by dogs?</p>
 
-<p><img class="center" src="images/bojack.png" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+<p><img class="center <a" src="href="http://timosci.net/public/bojack.png">http://timosci.net/public/bojack.png</a>" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
 
 <p>We could try something like this:</p>
 
@@ -148,7 +148,7 @@ a list of blog posts, for instance, according to some user-defined order.</p>
 
 <p>A one-to-many self association can be used to represent a <strong>tree-like</strong> data structure.</p>
 
-<p><img class="center" src="images/tree.svg" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+<p><img class="center <a" src="href="http://timosci.net/public/tree.svg">http://timosci.net/public/tree.svg</a>" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
 
 <p>In our model it looks like this:</p>
 
@@ -186,28 +186,44 @@ we want to display all the posts of a topic <em>and its entire tree of subtopics
 
 <p><strong>Social Networks</strong> are the most common application of these:</p>
 
-<p><img class="center" src="images/social.svg" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
+<p><img class="center <a" src="href="http://timosci.net/public/social.svg">http://timosci.net/public/social.svg</a>" width="350" height="350" title="&lsquo;image&rsquo; &lsquo;images&rsquo;" ></p>
 
 <p>The associations are done much like above, except this time we need a <strong>join table</strong>
-representing <strong>friendships</strong>, that includes 2 columns like <code>follower_id</code>, <code>followee_id</code>.</p>
+representing <strong>friendships</strong>, that includes 2 columns like <code>follower_id</code>, <code>followee_id</code>:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">Friendship</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;  belongs_to :follower, class_name: &amp;ldquo;User&amp;rdquo;</span>
+<span class="sr">  belongs_to :followee, class_name: &amp;ldquo;User&amp;rdquo;&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span><span class="k">end</span></code></pre></div></p>
+
+<p>and our User model becomes:</p>
+
+<p><div class="highlight"><pre><code class="language-ruby" data-lang="ruby"><span class="k">class</span> <span class="nc">User</span> <span class="o">&amp;</span><span class="n">lt</span><span class="p">;</span> <span class="no">ActiveRecord</span><span class="o">::</span><span class="no">Base</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;  include Sociable&lt;/</span><span class="nb">p</span><span class="o">&gt;</span>
+
+<span class="o">&lt;</span><span class="nb">p</span><span class="o">&gt;</span>  <span class="n">has_many</span> <span class="ss">:friendships</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">follower_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+  <span class="n">has_many</span> <span class="ss">:followships</span><span class="p">,</span> <span class="ss">foreign_key</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="n">followee_id</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;,</span> <span class="ss">class_name</span><span class="p">:</span> <span class="o">&amp;</span><span class="n">ldquo</span><span class="p">;</span><span class="no">Friendship</span><span class="o">&amp;</span><span class="n">rdquo</span><span class="p">;</span>
+  <span class="n">has_many</span> <span class="ss">:followees</span><span class="p">,</span> <span class="ss">through</span><span class="p">:</span> <span class="ss">:friendships</span>
+  <span class="n">has_many</span> <span class="ss">:followers</span><span class="p">,</span> <span class="ss">through</span><span class="p">:</span> <span class="ss">:followships</span><span class="o">&lt;</span><span class="sr">/p&gt;</span>
+
+<span class="sr">&lt;p&gt;end</span></code></pre></div></p>
 
 <p>Things start to become complex when we try to analyze the structure our
 social network, for example finding the the smallest &ldquo;degree of separation&rdquo; path
 between two people.</p>
 
 <p>Depending on the size and complexity of our social network, it might now
-be a good idea to hand over the heavy lifting to a graph function library such as the  <a href="RGL%20gem">https://github.com/monora/rgl</a>.</p>
+be a good idea to hand over the heavy lifting to a graph function library such as the  <a href="https://github.com/monora/rgl">RGL gem</a>.</p>
 
-<p>Graph theory is a huge topic that deserves it&rsquo;s own blog post, so I will only illustrate a single graph metric here called <a href="betweeness%20centrality">https://en.wikipedia.org/wiki/Betweenness_centrality</a>.</p>
+<p>Graph theory is a huge topic that deserves it&rsquo;s own blog post, so I will only illustrate a single graph metric here called <a href="https://en.wikipedia.org/wiki/Betweenness_centrality">betweeness centrality</a>.</p>
 
 <p>In simplified terms, betweeness centrality measures how &ldquo;well connected&rdquo; a node
-in the network is, not only in terms of number of connections, but also quality
-of connections.</p>
-
-<p>In this picture nodes are shaded according
-to their betweeness centrality:</p>
-
-<p>&hellip;</p>
+in the network is, not only in terms of number of connections, but also &ldquo;centrality&rdquo;
+of connections. A pictures speaks more than 1024 words. The node with the highest
+betweenness centrality in the above diagram is, you guessed it, <strong>node 6</strong>.</p>
 
 <p>It is is a useful metric, for example, if we want to rank a user&rsquo;s contacts in terms
 of &ldquo;importance&rdquo; on an Linked-In style employment site.</p>
