@@ -4,7 +4,7 @@
   <title><![CDATA[TimoSci]]></title>
   <link href="http://timosci.github.io/atom.xml" rel="self"/>
   <link href="http://timosci.github.io/"/>
-  <updated>2016-01-18T19:21:00-05:00</updated>
+  <updated>2016-01-18T19:24:38-05:00</updated>
   <id>http://timosci.github.io/</id>
   <author>
     <name><![CDATA[Timo J]]></name>
@@ -78,7 +78,7 @@ dogs are owned by dogs?</p>
 <h2>What is the point?</h2>
 
 <p>Self-associations are a useful <strong>design pattern</strong> because they allow
-us to <strong>recursively</strong> construct <a href="https://en.wikipedia.org/wiki/Graph_(abstract_data_type">Graph</a>-like data structures.</p>
+us to <strong>recursively</strong> construct <a href="https://en.wikipedia.org/wiki/Graph_(abstract_data_type">Graph</a>)-like data structures.</p>
 
 <p>I will explore in more detail as to how and why we would implement the 3 types of Self-associations:</p>
 
